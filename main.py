@@ -51,8 +51,7 @@ async def editar_articulos(id: int, nombre: str, precio: int):
             return articulo
         return {"error pa"}
 """
-
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body, Path, Query
 
 app = FastAPI()
 
@@ -60,17 +59,19 @@ app = FastAPI()
 peliculas = [
     {"id": 1, "titulo": "Rapidos y Furiosos", "director": "Christopher Magallanes", "anio": 2010},
     {"id": 2, "titulo": "La bala que doblo a la esquina", "director": "Christopher Cobos", "anio": 2014},
-    {"id": 3, "titulo": "El asesinato del muerto", "director": "Chirstopher ", "anio": 2019}
+    {"id": 3, "titulo": "El asesinato del muerto", "director": "Chirstopher", "anio": 2019}
 ]
 
-# GET - obtener todas las peliculas
+# GET - obtener todas las peliculas (con filtro opcional por año)
 @app.get("/peliculas")
-def obtener_peliculas():
+def obtener_peliculas(anio: int = Query(None, ge=1900, le=2100)):
+    if anio:
+        return [p for p in peliculas if p["anio"] == anio]
     return peliculas
 
 # GET - obtener una pelicula por id
 @app.get("/peliculas/{id}")
-def obtener_pelicula(id: int):
+def obtener_pelicula(id: int = Path(..., gt=0)):
     for pelicula in peliculas:
         if pelicula["id"] == id:
             return pelicula
@@ -78,13 +79,25 @@ def obtener_pelicula(id: int):
 
 # POST - agregar una nueva pelicula
 @app.post("/peliculas")
-def agregar_pelicula(pelicula: dict):
+def agregar_pelicula(
+    pelicula: dict = Body(..., example={
+        "id": 4,
+        "titulo": "Nueva Pelicula",
+        "director": "Director X",
+        "anio": 2020
+    })
+):
     peliculas.append(pelicula)
     return {"mensaje": "Pelicula agregada correctamente"}
 
 # PUT - actualizar una pelicula
 @app.put("/peliculas/{id}")
-def actualizar_pelicula(id: int, datos: dict):
+def actualizar_pelicula(
+    id: int = Path(..., gt=0),
+    datos: dict = Body(..., example={
+        "titulo": "Titulo actualizado"
+    })
+):
     for pelicula in peliculas:
         if pelicula["id"] == id:
             pelicula.update(datos)
@@ -93,7 +106,7 @@ def actualizar_pelicula(id: int, datos: dict):
 
 # DELETE - eliminar una pelicula
 @app.delete("/peliculas/{id}")
-def eliminar_pelicula(id: int):
+def eliminar_pelicula(id: int = Path(..., gt=0)):
     for pelicula in peliculas:
         if pelicula["id"] == id:
             peliculas.remove(pelicula)
