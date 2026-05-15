@@ -1,0 +1,4 @@
+""
+En cmd desde la carpeta de fastAPI:
+venv\Scripts\activate
+uvicorn app:app --reload

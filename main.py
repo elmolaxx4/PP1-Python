@@ -1,114 +1,119 @@
-"""
-from fastapi import FastAPI
-
-app = FastAPI()
-
-app.title = "Mi primera API"
-
-# METODOS: GET POST PUT DELETE
-
-articulos = [
-    {"id":1, "nombre":"Serrucho", "precio":1000},
-    {"id":2, "nombre":"Martillo", "precio":2000},
-    {"id":3, "nombre":"Taladroo", "precio":3000}
-]
-
-@app.get("/articulos")
-async def get_articulos():
-    return articulos
-
-@app.get("/articulos/{id}")
-async def get_articulo_id(id:int):
-    for articulo in articulos:
-        if articulo["id"] == id:
-            return articulo
-    return {"error": "wachin"}
-
-@app.delete("/articulos/{id}")
-async def delete_articulo(id: int):
-    for articulo in articulos:
-        if articulo["id"] == id:
-            articulos.remove(articulo)
-            return {"mensaje": "articulo eliminado"}
-    return {"mensaje": "error wachin"}
-    
-@app.post("/articulos")
-async def crear_articulo(id: int, nombre:str, precio:int):
-    nuevo_art = {
-        "id": id,
-        "nombre": nombre,
-        "precio": precio
-    }
-    articulos.append(nuevo_art)
-    return nuevo_art
-
-@app.put("/articulos/{id}")
-async def editar_articulos(id: int, nombre: str, precio: int):
-    for articulo in articulos:
-        if articulo["id"] == id:
-            articulo["nombre"] = nombre
-            articulo["precio"] = precio
-            return articulo
-        return {"error pa"}
-"""
 from fastapi import FastAPI, HTTPException, Body, Path, Query
 
 app = FastAPI()
 
-# "Base de datos" simulada
+# ==============================
+# BASE DE DATOS 
+# ==============================
 peliculas = [
     {"id": 1, "titulo": "Rapidos y Furiosos", "director": "Christopher Magallanes", "anio": 2010},
     {"id": 2, "titulo": "La bala que doblo a la esquina", "director": "Christopher Cobos", "anio": 2014},
-    {"id": 3, "titulo": "El asesinato del muerto", "director": "Chirstopher", "anio": 2019}
+    {"id": 3, "titulo": "El asesinato del muerto", "director": "Christopher", "anio": 2019}
 ]
 
-# GET - obtener todas las peliculas (con filtro opcional por año)
+# ==============================
+# GET - OBTENER TODAS LAS PELICULAS
+# ==============================
 @app.get("/peliculas")
-def obtener_peliculas(anio: int = Query(None, ge=1900, le=2100)):
+def obtener_peliculas(
+    anio: int = Query(None, ge=1900, le=2100, description="Filtrar por anio")
+):
     if anio:
         return [p for p in peliculas if p["anio"] == anio]
     return peliculas
 
-# GET - obtener una pelicula por id
+# ==============================
+# GET - OBTENER PELICULA POR ID
+# ==============================
 @app.get("/peliculas/{id}")
-def obtener_pelicula(id: int = Path(..., gt=0)):
+def obtener_pelicula(
+    id: int = Path(..., gt=0, description="ID de la pelicula")
+):
     for pelicula in peliculas:
         if pelicula["id"] == id:
             return pelicula
-    raise HTTPException(status_code=404, detail="Pelicula no encontrada")
 
-# POST - agregar una nueva pelicula
+    raise HTTPException(
+        status_code=404,
+        detail="Pelicula no encontrada"
+    )
+
+# ==============================
+# POST - AGREGAR PELICULA
+# ==============================
 @app.post("/peliculas")
 def agregar_pelicula(
-    pelicula: dict = Body(..., example={
-        "id": 4,
-        "titulo": "Nueva Pelicula",
-        "director": "Director X",
-        "anio": 2020
-    })
+    pelicula: dict = Body(
+        ...,
+        example={
+            "id": 4,
+            "titulo": "Nueva Pelicula",
+            "director": "Director X",
+            "anio": 2025
+        }
+    )
 ):
-    peliculas.append(pelicula)
-    return {"mensaje": "Pelicula agregada correctamente"}
+    # Validacion basica
+    if "id" not in pelicula or "titulo" not in pelicula:
+        raise HTTPException(
+            status_code=400,
+            detail="Faltan datos obligatorios"
+        )
 
-# PUT - actualizar una pelicula
+    # Evitar ID duplicado
+    for p in peliculas:
+        if p["id"] == pelicula["id"]:
+            raise HTTPException(
+                status_code=400,
+                detail="El ID ya existe"
+            )
+
+    peliculas.append(pelicula)
+
+    return {
+        "mensaje": "Pelicula agregada correctamente"
+    }
+
+# ==============================
+# PUT - ACTUALIZAR PELICULA
+# ==============================
 @app.put("/peliculas/{id}")
 def actualizar_pelicula(
     id: int = Path(..., gt=0),
-    datos: dict = Body(..., example={
-        "titulo": "Titulo actualizado"
-    })
+    datos: dict = Body(
+        ...,
+        example={"titulo": "Titulo actualizado"}
+    )
 ):
     for pelicula in peliculas:
         if pelicula["id"] == id:
             pelicula.update(datos)
-            return {"mensaje": "Pelicula actualizada"}
-    raise HTTPException(status_code=404, detail="Pelicula no encontrada")
 
-# DELETE - eliminar una pelicula
+            return {
+                "mensaje": "Pelicula actualizada correctamente"
+            }
+
+    raise HTTPException(
+        status_code=404,
+        detail="Pelicula no encontrada"
+    )
+
+# ==============================
+# DELETE - ELIMINAR PELICULA
+# ==============================
 @app.delete("/peliculas/{id}")
-def eliminar_pelicula(id: int = Path(..., gt=0)):
+def eliminar_pelicula(
+    id: int = Path(..., gt=0)
+):
     for pelicula in peliculas:
         if pelicula["id"] == id:
             peliculas.remove(pelicula)
-            return {"mensaje": "Pelicula eliminada"}
-    raise HTTPException(status_code=404, detail="Pelicula no encontrada")
+
+            return {
+                "mensaje": "Pelicula eliminada correctamente"
+            }
+
+    raise HTTPException(
+        status_code=404,
+        detail="Pelicula no encontrada"
+    )
